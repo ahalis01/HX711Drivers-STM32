@@ -1,31 +1,50 @@
+/**
+******************************************************************************
+* @file    hx711.h v1.0
+* @author  Amjad Halis
+* @brief   HX711 class implementation
+*            
+* This file is the unique include file that defines the class.
+* Include this file to use the library folder.
+******************************************************************************
+*/
+
 #ifndef hx711_h
 #define hx711_h
 
 class HX711
 {
 	private:
-		//byte PD_SCK;	// Power Down and Serial Clock Input Pin
+		// Power Down and Serial Clock Input Pin
         GPIO_TypeDef * PDSCK_GPIOx;
         uint16_t PDSCK_GPIO_Pin;
-		//byte DOUT;		// Serial Data Output Pin
+
+		// Serial Data Output Pin
         GPIO_TypeDef * DOUT_GPIOx;
         uint16_t DOUT_GPIO_Pin;
-		byte GAIN;		// amplification factor
-		long OFFSET = 0;	// used for tare weight
-		float SCALE = 1;	// used to return weight in grams, kg, ounces, whatever
+
+		// amplification factor
+		byte GAIN;
+		
+		// used for tare weight
+		long OFFSET = 0;
+
+		// used to return weight in grams, kg, ounces, whatever
+		float SCALE = 1;
 
 	public:
+		//constructor function
+		HX711();
 
-		HX711(); //constructor function
-
-		virtual ~HX711(); //destructor virtual function
+		//destructor virtual function
+		virtual ~HX711();
 
 		// Initialize library with data output pin, clock input pin and gain factor.
 		// Channel selection is made by passing the appropriate gain:
 		// - With a gain factor of 64 or 128, channel A is selected
 		// - With a gain factor of 32, channel B is selected
 		// The library default is "128" (Channel A).
-		void begin(byte dout, byte pd_sck, byte gain = 128);
+		void begin(GPIO_TypeDef * PD_SCK, uint16_t PD_SCK_pin, GPIO_TypeDef * DOUT, uint16_t DOUT_pin, byte gain = 128);
 
 		// Check if HX711 is ready
 		// from the datasheet: When output data is not ready for retrieval, digital output pin DOUT is high. Serial clock
@@ -77,4 +96,4 @@ class HX711
 		void power_up();
 };
 
-#endif /* HX711_h */
+#endif
