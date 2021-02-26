@@ -1,27 +1,51 @@
+/**
+******************************************************************************
+* @file    hx711.cpp v1.0
+* @author  Amjad Halis
+* @brief   HX711 class implementation
+*            
+*          This file is the unique include file that the application programmer
+*          is using in the C source code, usually in main.c. This file contains:
+*           - Configuration section that allows to select:
+*              - The STM32F4xx device used in the target application
+*              - To use or not the peripheral�s drivers in application code(i.e. 
+*                code will be based on direct access to peripheral�s registers 
+*                rather than drivers API), this option is controlled by 
+*                "#define USE_HAL_DRIVER"
+******************************************************************************
+*/
+
 #include "hx711.h"
 #include "stm32f4xx.h"
-#include "stm32f401xe.h"
 
 #if !defined  (STM32F401xE)
 #define STM32F401xE
 #endif
 
-void delay_us (uint16_t us)
-{
+/***********************************************************************
+* Implements a delay expressed in microseconds using timer1
+************************************************************************/
+void delay_us (uint16_t us){
 	__HAL_TIM_SET_COUNTER(&htim1,0);  // set the counter value a 0
-	while (__HAL_TIM_GET_COUNTER(&htim1) < us);  // wait for the counter to reach the us input in the parameter
+	while (__HAL_TIM_GET_COUNTER(&htim1) < us);  // wait for the counter to reach the microsecond input in the parameter
 }
 
-//let MSB first be equal to 0 and LSB first be nER, n!=0 (most likly 1 from user input)
-//the data pin will be reading the data
-uint8_t shiftInSlow( GPIO_TypeDef * dataGPIOx, uint16_t dataGPIO_Pin, GPIO_TypeDef * clockGPIOx, uint16_t clockGPIO_Pin, int bitOrder) {
+
+/***********************************************************************
+* Shifting in data at the correct speed as outlined in the datasheet
+************************************************************************/
+//let MSB first be equal to 0 and LSB first be 1 (or any none zero number)
+uint8_t shiftInSlow(GPIO_TypeDef * dataGPIOx, uint16_t dataGPIO_Pin, GPIO_TypeDef * clockGPIOx, uint16_t clockGPIO_Pin, int bitOrder) {
     uint8_t value = 0;
     uint8_t i;
 	HAL_TIM_Base_Start(&htim1);
 
+	//clock must be low before collecting data, DOUT is rising edge sensitive
+	HAL_GPIO_WritePin(clockGPIOx, clockGPIO_Pin, GPIO_PIN_RESET);
+
     for(i = 0; i < 8; ++i) {
         HAL_GPIO_WritePin(clockGPIOx, clockGPIO_Pin, GPIO_PIN_SET);
-        delay_us(1); //one microsecond delay
+        delay_us(1);
 
         if(bitOrder)
             value |= HAL_GPIO_ReadPin(dataGPIOx, dataGPIO_Pin) << i;
@@ -44,25 +68,29 @@ HX711::~HX711() {
 }
 
 //dont really need? cause the pin mode is set using the gui?
+//Make sure to set PD_SCK as a GPIO, and DOUT as INPUT_PULLUP
+/***********************************************************************
+* Initialize the private class variables
+************************************************************************/
 void HX711::begin(GPIO_TypeDef * PD_SCK, uint16_t PD_SCK_pin, GPIO_TypeDef * DOUT, uint16_t DOUT_pin, byte gain) {
 	PDSCK_GPIOx = PD_SCK;
 	PDSCK_GPIO_Pin = PD_SCK_pin;
 	DOUT_GPIOx = DOUT;
 	DOUT_GPIO_Pin = DOUT_pin;
 
-	//pinMode(PD_SCK, OUTPUT);
-	//pinMode(DOUT, INPUT_PULLUP);
-	//just do it using the GUI
-
 	set_gain(gain);
 }
 
-//change to use HAL
+/***********************************************************************
+* Ensures the dataout clock is zero
+************************************************************************/
 bool HX711::is_ready() {
 	return HAL_GPIO_ReadPin(DOUT_GPIOx, DOUT_GPIO_Pin) == 0;
 }
 
-//from the datasheet, related to the number of pulses
+/***********************************************************************
+* Sets the GAIN (a private variable) 
+************************************************************************/
 void HX711::set_gain(byte gain) {
 	switch (gain) {
 		case 128:		// channel A, gain factor 128
@@ -78,7 +106,9 @@ void HX711::set_gain(byte gain) {
 
 }
 
-
+/***********************************************************************
+* Reads data from the DOUT pin
+************************************************************************/
 long HX711::read() {
 
 	// Wait for the chip to become ready.
@@ -96,17 +126,12 @@ long HX711::read() {
 	// forces DOUT high until that cycle is completed.
 	//
 	// The result is that all subsequent bits read by shiftIn() will read back as 1,
-	// corrupting the value returned by read().  The ATOMIC_BLOCK macro disables
-	// interrupts during the sequence and then restores the interrupt mask to its previous
-	// state after the sequence completes, insuring that the entire read-and-gain-set
-	// sequence is not interrupted.  The macro has a few minor advantages over bracketing
-	// the sequence between `noInterrupts()` and `interrupts()` calls.
+	// corrupting the value returned by read()
 	
 	__disable_irq();
 	
-	//change to suit HAL
 	// Pulse the clock pin 24 times to read the data.
-	data[2] = SHIFTIN_WITH_SPEED_SUPPORT(DOUT_GPIOx, DOUT_GPIO_Pin, PDSCK_GPIOx, PDSCK_GPIO_Pin, 0);
+	data[2] = SHIFTIN_WITH_SPEED_SUPPORT(DOUT_GPIOx, DOUT_GPIO_Pin, PDSCK_GPIOx, PDSCK_GPIO_Pin, 0); //zero for the MSB first
 	data[1] = SHIFTIN_WITH_SPEED_SUPPORT(DOUT_GPIOx, DOUT_GPIO_Pin, PDSCK_GPIOx, PDSCK_GPIO_Pin, 0);
 	data[0] = SHIFTIN_WITH_SPEED_SUPPORT(DOUT_GPIOx, DOUT_GPIO_Pin, PDSCK_GPIOx, PDSCK_GPIO_Pin, 0);
 
@@ -134,21 +159,24 @@ long HX711::read() {
 	return static_cast<long>(value);
 }
 
+/***********************************************************************
+* Waits until the HX711 is ready
+************************************************************************/
 void HX711::wait_ready(unsigned long delay_ms) {
 	// Wait for the chip to become ready.
 	// This is a blocking implementation and will
 	// halt the sketch until a load cell is connected.
 	while (!is_ready()) {
-		// Probably will do no harm on AVR but will feed the Watchdog Timer (WDT) on ESP.
-		// https://github.com/bogde/HX711/issues/73
 		HAL_Delay(delay_ms);
 	}
 }
 
+/***********************************************************************
+* Waits until the HX711 is ready, and tries "retries" number of times
+************************************************************************/
 bool HX711::wait_ready_retry(int retries, unsigned long delay_ms) {
 	// Wait for the chip to become ready by
 	// retrying for a specified amount of attempts.
-	// https://github.com/bogde/HX711/issues/76
 	int count = 0;
 	while (count < retries) {
 		if (is_ready()) {
@@ -162,7 +190,25 @@ bool HX711::wait_ready_retry(int retries, unsigned long delay_ms) {
 
 //https://stackoverflow.com/questions/37375602/arduino-millis-in-stm32
 //change the millis() to use systick
-//tbh I dont really need this, but its good to include
+/*
+//initialize with gui or put this in code
+// Initialise SysTick to tick at 1ms by initialising it with SystemCoreClock (Hz)/1000
+//maybe change to a long? cause we're running this for a long time
+volatile uint32_t counter = 0;
+SysTick_Config(SystemCoreClock / 1000);
+
+SysTick_Handler(void) {
+  counter++;
+}
+
+//maybe change to an unsigned long? cause we're running this for a long time
+uint32_t millis() {
+  return counter;
+}
+*/
+/***********************************************************************
+* Waits until the HX711 is ready, with a time limit
+************************************************************************/
 bool HX711::wait_ready_timeout(unsigned long timeout, unsigned long delay_ms) {
 	// Wait for the chip to become ready until timeout.
 	// https://github.com/bogde/HX711/pull/96
@@ -176,6 +222,9 @@ bool HX711::wait_ready_timeout(unsigned long timeout, unsigned long delay_ms) {
 	return false;
 }
 
+/***********************************************************************
+* reads the average of the values
+************************************************************************/
 long HX711::read_average(byte times) {
 	long sum = 0;
 	for (byte i = 0; i < times; i++) {
@@ -187,40 +236,67 @@ long HX711::read_average(byte times) {
 	return sum / times;
 }
 
+/***********************************************************************
+* returns the average value with an adjustment for the tare
+************************************************************************/
 double HX711::get_value(byte times) {
 	return read_average(times) - OFFSET;
 }
 
+/***********************************************************************
+* returns the units
+************************************************************************/
 float HX711::get_units(byte times) {
 	return get_value(times) / SCALE;
 }
 
+/***********************************************************************
+* Tares, or zeros the scale
+************************************************************************/
 void HX711::tare(byte times) {
 	double sum = read_average(times);
 	set_offset(sum);
 }
 
+/***********************************************************************
+* Sets the scale
+************************************************************************/
 void HX711::set_scale(float scale) {
 	SCALE = scale;
 }
 
+/***********************************************************************
+* Returns the scale
+************************************************************************/
 float HX711::get_scale() {
 	return SCALE;
 }
 
+/***********************************************************************
+* Sets the offset
+************************************************************************/
 void HX711::set_offset(long offset) {
 	OFFSET = offset;
 }
 
+/***********************************************************************
+* Returns the offset
+************************************************************************/
 long HX711::get_offset() {
 	return OFFSET;
 }
 
+/***********************************************************************
+* Powers down the HX711 using the PDSCK GPIO pin
+************************************************************************/
 void HX711::power_down() {
 	HAL_GPIO_WritePin(PDSCK_GPIOx, PDSCK_GPIO_Pin, GPIO_PIN_RESET);
 	HAL_GPIO_WritePin(PDSCK_GPIOx, PDSCK_GPIO_Pin, GPIO_PIN_SET);
 }
 
+/***********************************************************************
+* Powers up the HX711 using the PDSCK GPIO pin
+************************************************************************/
 void HX711::power_up() {
 	HAL_GPIO_WritePin(PDSCK_GPIOx, PDSCK_GPIO_Pin, GPIO_PIN_RESET);
 }
