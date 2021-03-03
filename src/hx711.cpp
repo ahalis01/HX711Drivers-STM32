@@ -1,5 +1,6 @@
 /**
 ******************************************************************************
+* acknowledgment: This Library is based on https://github.com/bogde/HX711
 * @file    hx711.cpp v1.0
 * @author  Amjad Halis
 * @brief   HX711 class implementation
@@ -59,16 +60,13 @@ uint8_t shiftInSlow(GPIO_TypeDef * dataGPIOx, uint16_t dataGPIO_Pin, GPIO_TypeDe
 
 #define SHIFTIN_WITH_SPEED_SUPPORT(dataGPIOx,dataGPIO_Pin,clockGPIOx,clockGPIO_Pin,bitOrder) shiftInSlow(dataGPIOx,dataGPIO_Pin,clockGPIOx,clockGPIO_Pin,bitOrder)
 
-
-
 HX711::HX711() {
 }
 
 HX711::~HX711() {
 }
 
-//dont really need? cause the pin mode is set using the gui?
-//Make sure to set PD_SCK as a GPIO, and DOUT as INPUT_PULLUP
+//Make sure to set PD_SCK as a GPIO, and DOUT as INPUT_PULLUP in the cube GUI. 
 /***********************************************************************
 * Initialize the private class variables
 ************************************************************************/
@@ -165,7 +163,7 @@ long HX711::read() {
 void HX711::wait_ready(unsigned long delay_ms) {
 	// Wait for the chip to become ready.
 	// This is a blocking implementation and will
-	// halt the sketch until a load cell is connected.
+	// halt the code until a load cell is connected.
 	while (!is_ready()) {
 		HAL_Delay(delay_ms);
 	}
@@ -188,32 +186,14 @@ bool HX711::wait_ready_retry(int retries, unsigned long delay_ms) {
 	return false;
 }
 
-//https://stackoverflow.com/questions/37375602/arduino-millis-in-stm32
-//change the millis() to use systick
-/*
-//initialize with gui or put this in code
-// Initialise SysTick to tick at 1ms by initialising it with SystemCoreClock (Hz)/1000
-//maybe change to a long? cause we're running this for a long time
-volatile uint32_t counter = 0;
-SysTick_Config(SystemCoreClock / 1000);
-
-SysTick_Handler(void) {
-  counter++;
-}
-
-//maybe change to an unsigned long? cause we're running this for a long time
-uint32_t millis() {
-  return counter;
-}
-*/
 /***********************************************************************
 * Waits until the HX711 is ready, with a time limit
 ************************************************************************/
 bool HX711::wait_ready_timeout(unsigned long timeout, unsigned long delay_ms) {
 	// Wait for the chip to become ready until timeout.
 	// https://github.com/bogde/HX711/pull/96
-	unsigned long millisStarted = millis();
-	while (millis() - millisStarted < timeout) {
+	unsigned long millisStarted = HAL_GetTick();
+	while (HAL_GetTick() - millisStarted < timeout) {
 		if (is_ready()) {
 			return true;
 		}
