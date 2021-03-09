@@ -23,6 +23,8 @@
 #define STM32F401xE
 #endif
 
+#define GET_VARIABLE_NAME(Variable) (#Variable)
+
 /***********************************************************************
 * Implements a delay expressed in microseconds using timer1
 ************************************************************************/
@@ -66,6 +68,49 @@ HX711::HX711() {
 HX711::~HX711() {
 }
 
+/***********************************************************************
+* Switch cases for initializing GPIO clocks
+************************************************************************/
+void enableClock(char* gpioType){
+	switch (gpioType){
+	    case "GPIOA":
+			__HAL_RCC_GPIOA_CLK_ENABLE();
+			break;
+	    case "GPIOB":
+    		__HAL_RCC_GPIOB_CLK_ENABLE();
+    		break;
+	    case "GPIOC":
+			__HAL_RCC_GPIOC_CLK_ENABLE();
+			break;
+	    case "GPIOD":
+    		__HAL_RCC_GPIOD_CLK_ENABLE();
+    		break;
+	   case "GPIOE":
+			__HAL_RCC_GPIOE_CLK_ENABLE();
+			break;
+	    case "GPIOF":
+    		__HAL_RCC_GPIOF_CLK_ENABLE();
+    		break;
+	    case "GPIOG":
+			__HAL_RCC_GPIOG_CLK_ENABLE();
+			break;
+	    case "GPIOH":
+    		__HAL_RCC_GPIOH_CLK_ENABLE();
+    		break;
+    	case "GPIOI":
+			__HAL_RCC_GPIOI_CLK_ENABLE();
+			break;
+    	case "GPIOJ":
+    		__HAL_RCC_GPIOJ_CLK_ENABLE();
+    		break;
+	    case "GPIOK":
+			__HAL_RCC_GPIOK_CLK_ENABLE();
+			break;
+	    default:
+    		break;
+	}
+}
+
 //Make sure to set PD_SCK as a GPIO, and DOUT as INPUT_PULLUP in the cube GUI. 
 /***********************************************************************
 * Initialize the private class variables
@@ -75,6 +120,30 @@ void HX711::begin(GPIO_TypeDef * PD_SCK, uint16_t PD_SCK_pin, GPIO_TypeDef * DOU
 	PDSCK_GPIO_Pin = PD_SCK_pin;
 	DOUT_GPIOx = DOUT;
 	DOUT_GPIO_Pin = DOUT_pin;
+
+	char* PD_SCK_GPIOtype = GET_VARIABLE_NAME(PD_SCK);
+	char* DOUT_GPIOtype = GET_VARIABLE_NAME(DOUT);
+
+	enableClock(PD_SCK_GPIOtype);
+	enableClock(DOUT_GPIOtype);
+
+	HAL_GPIO_WritePin(PD_SCK, PD_SCK_pin, GPIO_PIN_RESET);
+
+	GPIO_InitStruct.Pin = PD_SCK_pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(PD_SCK, &GPIO_InitStruct);
+	
+	GPIO_InitStruct.Pin = DOUT_pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(DOUT, &GPIO_InitStruct);
+
+	/* EXTI interrupt init*/
+	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 	set_gain(gain);
 }
