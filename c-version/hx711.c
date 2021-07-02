@@ -157,21 +157,21 @@ void set_gain(byte gain, HX711_TypeDef instance) {
 /***********************************************************************
 * returns the average value with an adjustment for the tare
 ************************************************************************/
-double HX711::get_value(byte times, HX711_TypeDef instance) {
+double get_value(byte times, HX711_TypeDef instance) {
 	return read_average(times, instance) - instance.OFFSET;
 }
 
 /***********************************************************************
 * returns the units
 ************************************************************************/
-float HX711::get_units(byte times, HX711_TypeDef instance) {
+float get_units(byte times, HX711_TypeDef instance) {
 	return get_value(times, instance) / instance.SCALE;
 }
 
 /***********************************************************************
 * Tares, or zeros the scale
 ************************************************************************/
-void HX711::tare(byte times, HX711_TypeDef instance) {
+void tare(byte times, HX711_TypeDef instance) {
 	double sum = read_average(times, instance);
 	set_offset(sum, instance);
 }
@@ -179,14 +179,14 @@ void HX711::tare(byte times, HX711_TypeDef instance) {
 /***********************************************************************
 * Sets the scale
 ************************************************************************/
-void HX711::set_scale(float scale, HX711_TypeDef instance) {
+void set_scale(float scale, HX711_TypeDef instance) {
 	instance.SCALE = scale;
 }
 
 /***********************************************************************
 * Sets the offset
 ************************************************************************/
-void HX711::set_offset(long offset, HX711_TypeDef instance) {
+void set_offset(long offset, HX711_TypeDef instance) {
 	instance.OFFSET = offset;
 }
 
