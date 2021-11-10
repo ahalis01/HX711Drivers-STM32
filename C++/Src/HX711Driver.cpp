@@ -16,11 +16,10 @@
 ******************************************************************************
 */
 
-#include "hx711.h"
-#include "stm32f4xx.h"
+#include "HX711Driver.hpp"
 
-#if !defined  (STM32F401xE)
-#define STM32F401xE
+#ifdef STM32F401xE
+#include "stm32f4xx.h"
 #endif
 
 #define GET_VARIABLE_NAME(Variable) (#Variable)
