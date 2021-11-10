@@ -176,3 +176,60 @@ void power_up(HX711_struct_TypeDef instance) {
 	HAL_GPIO_WritePin(instance.PDSCK_GPIOx, instance.PDSCK_GPIO_Pin,
 			GPIO_PIN_RESET);
 }
+
+//ACCESS AND MODIFIER FUNCTIONS
+//RECENTLY ADDED, NOT TESTED BUT MOST LIKELY CORRECT
+
+/***********************************************************************
+* Sets the GAIN
+************************************************************************/
+void set_gain(uint8_t gain, HX711_struct_TypeDef *instance) {
+	switch (gain) {
+		case 128:		// channel A, gain factor 128
+			instance->GAIN = 1;
+			break;
+		case 64:		// channel A, gain factor 64
+			instance->GAIN = 3;
+			break;
+		case 32:		// channel B, gain factor 32
+			instance->GAIN = 2;
+			break;
+	}
+
+}
+
+/***********************************************************************
+* returns the average value with an adjustment for the tare
+************************************************************************/
+double get_value(uint8_t times, HX711_struct_TypeDef instance) {
+	return read_average(times, instance) - instance.OFFSET;
+}
+
+/***********************************************************************
+* returns the units
+************************************************************************/
+float get_units(uint8_t times, HX711_struct_TypeDef instance) {
+	return get_value(times, instance) / instance.SCALE;
+}
+
+/***********************************************************************
+* Tares, or zeros the scale
+************************************************************************/
+void tare(uint8_t times, HX711_struct_TypeDef *instance) {
+	double sum = read_average(times, *instance);
+	set_offset(sum, instance);
+}
+
+/***********************************************************************
+* Sets the scale
+************************************************************************/
+void set_scale(float scale, HX711_struct_TypeDef *instance) {
+	instance->SCALE = scale;
+}
+
+/***********************************************************************
+* Sets the offset
+************************************************************************/
+void set_offset(long offset, HX711_struct_TypeDef *instance) {
+	instance->OFFSET = offset;
+}

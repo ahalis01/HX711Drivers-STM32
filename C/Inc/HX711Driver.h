@@ -28,5 +28,11 @@ int wait_ready_retry(int, unsigned long, HX711_struct_TypeDef); //wait until the
 int wait_ready_timeout(unsigned long, unsigned long, HX711_struct_TypeDef); //wait until the hx711 is ready for a certain amount of time
 void power_down(HX711_struct_TypeDef); //powers down the hx711 using the PDSCK GPIO pin
 void power_up(HX711_struct_TypeDef); //powers up the hx711 using the PDSCK GPIO pin
-
+//Access and modifier functions
+void set_gain(uint8_t, HX711_struct_TypeDef *);
+double get_value(uint8_t, HX711_struct_TypeDef);
+float get_units(uint8_t, HX711_struct_TypeDef);
+void tare(uint8_t, HX711_struct_TypeDef *);
+void set_scale(float, HX711_struct_TypeDef *);
+void set_offset(long, HX711_struct_TypeDef *);
 #endif
