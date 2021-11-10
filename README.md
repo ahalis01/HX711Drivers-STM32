@@ -5,4 +5,4 @@ This library was designed using a HX711 breakout board. It has been tested with 
 To use the driver:
 1. Include the header file.
 2. Set an input GPIO pin, an output GPIO pin and a 1MHz (set to correct prescaler) timer using the CubeMx software.
-3. Create a HX711_TypeDef object, and use the functions as described in the header and source files.
+3. Create a HX711_struct_TypeDef object, and use the functions as described in the header and source files.
