@@ -122,6 +122,63 @@ void wait_ready(unsigned long delay_s, HX711_struct_TypeDef instance) {
 	}
 }
 
+<<<<<<< HEAD:C/Src/HX711Driver.c
+=======
+/***********************************************************************
+* Sets the GAIN
+************************************************************************/
+void set_gain(byte gain, HX711_TypeDef instance) {
+	switch (gain) {
+		case 128:		// channel A, gain factor 128
+			instance.GAIN = 1;
+			break;
+		case 64:		// channel A, gain factor 64
+			instance.GAIN = 3;
+			break;
+		case 32:		// channel B, gain factor 32
+			instance.GAIN = 2;
+			break;
+	}
+
+}
+
+/***********************************************************************
+* returns the average value with an adjustment for the tare
+************************************************************************/
+double get_value(byte times, HX711_TypeDef instance) {
+	return read_average(times, instance) - instance.OFFSET;
+}
+
+/***********************************************************************
+* returns the units
+************************************************************************/
+float get_units(byte times, HX711_TypeDef instance) {
+	return get_value(times, instance) / instance.SCALE;
+}
+
+/***********************************************************************
+* Tares, or zeros the scale
+************************************************************************/
+void tare(byte times, HX711_TypeDef instance) {
+	double sum = read_average(times, instance);
+	set_offset(sum, instance);
+}
+
+/***********************************************************************
+* Sets the scale
+************************************************************************/
+void set_scale(float scale, HX711_TypeDef instance) {
+	instance.SCALE = scale;
+}
+
+/***********************************************************************
+* Sets the offset
+************************************************************************/
+void set_offset(long offset, HX711_TypeDef instance) {
+	instance.OFFSET = offset;
+}
+
+>>>>>>> 5a46a77838a83f071fd042a87cd7d29a1d3dfd20:c-version/hx711.c
 //THE FUNCTIONS BELOW HAVE NOT BEEN FULLY TESTED
 
 /***********************************************************************
